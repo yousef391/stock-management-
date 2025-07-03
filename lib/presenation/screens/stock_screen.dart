@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:stock_management/presenation/widgets/stock_op_dialog.dart';
 import '../viewmodels/stock_viewmodel.dart';
 import '../../data/models/product.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../data/models/stock_performa.dart';
 import '../viewmodels/auth_viewmodel.dart';
 import '../viewmodels/company_viewmodel.dart';
-import '../widgets/stock_operation_dialog.dart';
 
 class StockItem {
   final Product product;
@@ -1151,3 +1151,4 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
     }
   }
 }
+

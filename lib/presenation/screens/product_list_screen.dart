@@ -6,7 +6,7 @@ import 'product_form_screen.dart';
 import '../viewmodels/auth_viewmodel.dart';
 
 class ProductListScreen extends StatefulWidget {
-  const ProductListScreen({Key? key}) : super(key: key);
+  const ProductListScreen({super.key});
 
   @override
   State<ProductListScreen> createState() => _ProductListScreenState();
@@ -16,6 +16,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
   String _searchQuery = '';
   String _sortBy = 'name';
   bool _sortAscending = true;
+  String _productFilter = 'all'; // <-- Add this line
 
   @override
   void initState() {
@@ -31,55 +32,66 @@ class _ProductListScreenState extends State<ProductListScreen> {
   void _showDeleteDialog(BuildContext context, Product product) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            Icon(Icons.warning, color: Colors.orange, size: 28),
-            SizedBox(width: 12),
-            Text('Delete Product'),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Are you sure you want to delete "${product.name}"?',
-              style: TextStyle(fontSize: 16),
+      builder:
+          (context) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
             ),
-            SizedBox(height: 8),
-            Text(
-              'This action cannot be undone.',
-              style: TextStyle(color: Colors.grey[600], fontSize: 14),
+            title: Row(
+              children: [
+                Icon(Icons.warning, color: Colors.orange, size: 28),
+                SizedBox(width: 12),
+                Text('Delete Product'),
+              ],
             ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text('Cancel'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Are you sure you want to delete "${product.name}"?',
+                  style: TextStyle(fontSize: 16),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  'This action cannot be undone.',
+                  style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  final userId = context.read<AuthViewModel>().user?.id;
+                  if (userId != null) {
+                    context.read<ProductViewModel>().deleteProduct(
+                      product.id,
+                      userId,
+                    );
+                  }
+                  Navigator.of(context).pop();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                ),
+                child: Text('Delete'),
+              ),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () {
-              final userId = context.read<AuthViewModel>().user?.id;
-              if (userId != null) {
-                context.read<ProductViewModel>().deleteProduct(product.id, userId);
-              }
-              Navigator.of(context).pop();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            child: Text('Delete'),
-          ),
-        ],
-      ),
     );
   }
 
-  Widget _buildStatsCard(String title, String value, IconData icon, Color color) {
+  Widget _buildStatsCard(
+    String title,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Container(
       padding: EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -120,11 +132,319 @@ class _ProductListScreenState extends State<ProductListScreen> {
             ),
           ),
           SizedBox(height: 4),
+          Text(title, style: TextStyle(fontSize: 14, color: Colors.grey[600])),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProductCard(Product product, bool isMobile) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        // Responsive parameters
+        double padding = isMobile ? 16 : 28;
+        double iconSize = isMobile ? 20 : 32;
+        double fontSizeTitle = isMobile ? 16 : 22;
+        double fontSizeId = isMobile ? 11 : 15;
+        double fontSizeChip = isMobile ? 10 : 14;
+        double fontSizeProfit = isMobile ? 10 : 14;
+        double chipPaddingH = isMobile ? 10 : 16;
+        double chipPaddingV = isMobile ? 5 : 10;
+        int maxLinesTitle = isMobile ? 2 : 1;
+        int maxLinesId = 1;
+        double spacing = isMobile ? 10 : 18;
+        double popupIconSize = isMobile ? 20 : 28;
+        return Container(
+          margin: EdgeInsets.symmetric(
+            horizontal: isMobile ? 8 : 0, // Grid already has spacing
+            vertical: isMobile ? 6 : 0,
+          ),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                offset: Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => ProductFormScreen(product: product),
+                  ),
+                );
+              },
+              borderRadius: BorderRadius.circular(16),
+              child: Padding(
+                padding: EdgeInsets.all(padding),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header with icon and title
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: EdgeInsets.all(iconSize / 2),
+                          decoration: BoxDecoration(
+                            color: Theme.of(
+                              context,
+                            ).primaryColor.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(
+                            Icons.inventory_2,
+                            color: Theme.of(context).primaryColor,
+                            size: iconSize,
+                          ),
+                        ),
+                        SizedBox(width: spacing),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                product.name,
+                                style: TextStyle(
+                                  fontSize: fontSizeTitle,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.grey[800],
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: maxLinesTitle,
+                                softWrap: false,
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                'ID: ${product.id.substring(0, 8)}...',
+                                style: TextStyle(
+                                  fontSize: fontSizeId,
+                                  color: Colors.grey[500],
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: maxLinesId,
+                                softWrap: false,
+                              ),
+                            ],
+                          ),
+                        ),
+                        SizedBox(width: 4),
+                        PopupMenuButton<String>(
+                          icon: Icon(
+                            Icons.more_vert,
+                            color: Colors.grey[600],
+                            size: popupIconSize,
+                          ),
+                          onSelected: (value) {
+                            switch (value) {
+                              case 'edit':
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder:
+                                        (_) =>
+                                            ProductFormScreen(product: product),
+                                  ),
+                                );
+                                break;
+                              case 'delete':
+                                _showDeleteDialog(context, product);
+                                break;
+                            }
+                          },
+                          itemBuilder:
+                              (context) => [
+                                PopupMenuItem(
+                                  value: 'edit',
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.edit,
+                                        color: Colors.blue,
+                                        size: fontSizeTitle,
+                                      ),
+                                      SizedBox(width: 8),
+                                      Text(
+                                        'Edit',
+                                        overflow: TextOverflow.ellipsis,
+                                        maxLines: 1,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                PopupMenuItem(
+                                  value: 'delete',
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.delete,
+                                        color: Colors.red,
+                                        size: fontSizeTitle,
+                                      ),
+                                      SizedBox(width: 8),
+                                      Text(
+                                        'Delete',
+                                        style: TextStyle(color: Colors.red),
+                                        overflow: TextOverflow.ellipsis,
+                                        maxLines: 1,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: spacing),
+                    // Info chips: Always in a Row, regardless of screen size
+                    Row(
+                      children: [
+                        Flexible(
+                          child: _buildInfoChip(
+                            'Stock',
+                            '${product.stock}',
+                            product.stock > 0 ? Colors.green : Colors.red,
+                            false,
+                            fontSize: fontSizeChip,
+                            paddingH: chipPaddingH,
+                            paddingV: chipPaddingV,
+                          ),
+                        ),
+                        SizedBox(width: 8),
+                        Flexible(
+                          child: _buildInfoChip(
+                            'Buy Price',
+                            '${product.buyPrice.toStringAsFixed(2)} DZD',
+                            Colors.blue,
+                            false,
+                            fontSize: fontSizeChip,
+                            paddingH: chipPaddingH,
+                            paddingV: chipPaddingV,
+                          ),
+                        ),
+                        SizedBox(width: 8),
+                        Flexible(
+                          child: _buildInfoChip(
+                            'Sell Price',
+                            '${product.sellPrice.toStringAsFixed(2)} DZD',
+                            Colors.orange,
+                            false,
+                            fontSize: fontSizeChip,
+                            paddingH: chipPaddingH,
+                            paddingV: chipPaddingV,
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: spacing),
+                    // Profit information (always on a new line)
+                    _buildProfitContainer(
+                      product,
+                      isMobile,
+                      fontSize: fontSizeProfit,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // Enhanced info chip with responsive design
+  Widget _buildInfoChip(
+    String label,
+    String value,
+    Color color,
+    bool isMobile, {
+    double fontSize = 11,
+    double paddingH = 10,
+    double paddingV = 6,
+  }) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: paddingH, vertical: paddingV),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
           Text(
-            title,
+            label,
             style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[600],
+              fontSize: fontSize - 1,
+              color: color.withOpacity(0.8),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          SizedBox(height: 2),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: fontSize,
+              color: color,
+              fontWeight: FontWeight.bold,
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Enhanced profit container
+  Widget _buildProfitContainer(
+    Product product,
+    bool isMobile, {
+    double fontSize = 11,
+  }) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 12 : 14,
+        vertical: isMobile ? 8 : 10,
+      ),
+      decoration: BoxDecoration(
+        color:
+            product.profit >= 0
+                ? Colors.green.withOpacity(0.1)
+                : Colors.red.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color:
+              product.profit >= 0
+                  ? Colors.green.withOpacity(0.3)
+                  : Colors.red.withOpacity(0.3),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            product.profit >= 0 ? Icons.trending_up : Icons.trending_down,
+            color: product.profit >= 0 ? Colors.green : Colors.red,
+            size: fontSize + 3,
+          ),
+          SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Profit: ${product.formattedProfit} (${product.formattedProfitPercentage})',
+              style: TextStyle(
+                color: product.profit >= 0 ? Colors.green : Colors.red,
+                fontWeight: FontWeight.w600,
+                fontSize: fontSize,
+              ),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
             ),
           ),
         ],
@@ -132,339 +452,58 @@ class _ProductListScreenState extends State<ProductListScreen> {
     );
   }
 
-Widget _buildProductCard(Product product, bool isMobile) {
-  return LayoutBuilder(
-    builder: (context, constraints) {
-      final width = constraints.maxWidth;
-      // Responsive parameters
-      double padding = isMobile ? 16 : 28;
-      double iconSize = isMobile ? 20 : 32;
-      double fontSizeTitle = isMobile ? 16 : 22;
-      double fontSizeId = isMobile ? 11 : 15;
-      double fontSizeChip = isMobile ? 10 : 14;
-      double fontSizeProfit = isMobile ? 10 : 14;
-      double chipPaddingH = isMobile ? 10 : 16;
-      double chipPaddingV = isMobile ? 5 : 10;
-      int maxLinesTitle = isMobile ? 2 : 1;
-      int maxLinesId = 1;
-      double spacing = isMobile ? 10 : 18;
-      double popupIconSize = isMobile ? 20 : 28;
-      return Container(
-        margin: EdgeInsets.symmetric(
-          horizontal: isMobile ? 8 : 0, // Grid already has spacing
-          vertical: isMobile ? 6 : 0,
-        ),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => ProductFormScreen(product: product),
-                ),
-              );
-            },
-            borderRadius: BorderRadius.circular(16),
-            child: Padding(
-              padding: EdgeInsets.all(padding),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header with icon and title
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        padding: EdgeInsets.all(iconSize / 2),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).primaryColor.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Icon(
-                          Icons.inventory_2,
-                          color: Theme.of(context).primaryColor,
-                          size: iconSize,
-                        ),
-                      ),
-                      SizedBox(width: spacing),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              product.name,
-                              style: TextStyle(
-                                fontSize: fontSizeTitle,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.grey[800],
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: maxLinesTitle,
-                              softWrap: false,
-                            ),
-                            SizedBox(height: 4),
-                            Text(
-                              'ID: ${product.id.substring(0, 8)}...',
-                              style: TextStyle(
-                                fontSize: fontSizeId,
-                                color: Colors.grey[500],
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: maxLinesId,
-                              softWrap: false,
-                            ),
-                          ],
-                        ),
-                      ),
-                      SizedBox(width: 4),
-                      PopupMenuButton<String>(
-                        icon: Icon(
-                          Icons.more_vert,
-                          color: Colors.grey[600],
-                          size: popupIconSize,
-                        ),
-                        onSelected: (value) {
-                          switch (value) {
-                            case 'edit':
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => ProductFormScreen(product: product),
-                                ),
-                              );
-                              break;
-                            case 'delete':
-                              _showDeleteDialog(context, product);
-                              break;
-                          }
-                        },
-                        itemBuilder: (context) => [
-                          PopupMenuItem(
-                            value: 'edit',
-                            child: Row(
-                              children: [
-                                Icon(Icons.edit, color: Colors.blue, size: fontSizeTitle),
-                                SizedBox(width: 8),
-                                Text('Edit', overflow: TextOverflow.ellipsis, maxLines: 1),
-                              ],
-                            ),
-                          ),
-                          PopupMenuItem(
-                            value: 'delete',
-                            child: Row(
-                              children: [
-                                Icon(Icons.delete, color: Colors.red, size: fontSizeTitle),
-                                SizedBox(width: 8),
-                                Text('Delete', style: TextStyle(color: Colors.red), overflow: TextOverflow.ellipsis, maxLines: 1),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: spacing),
-                  // Info chips: Always in a Row, regardless of screen size
-                  Row(
-                    children: [
-                      Flexible(
-                        child: _buildInfoChip(
-                          'Stock',
-                          '${product.stock}',
-                          product.stock > 0 ? Colors.green : Colors.red,
-                          false,
-                          fontSize: fontSizeChip,
-                          paddingH: chipPaddingH,
-                          paddingV: chipPaddingV,
-                        ),
-                      ),
-                      SizedBox(width: 8),
-                      Flexible(
-                        child: _buildInfoChip(
-                          'Buy Price',
-                          '${product.buyPrice.toStringAsFixed(2)} DZD',
-                          Colors.blue,
-                          false,
-                          fontSize: fontSizeChip,
-                          paddingH: chipPaddingH,
-                          paddingV: chipPaddingV,
-                        ),
-                      ),
-                      SizedBox(width: 8),
-                      Flexible(
-                        child: _buildInfoChip(
-                          'Sell Price',
-                          '${product.sellPrice.toStringAsFixed(2)} DZD',
-                          Colors.orange,
-                          false,
-                          fontSize: fontSizeChip,
-                          paddingH: chipPaddingH,
-                          paddingV: chipPaddingV,
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: spacing),
-                  // Profit information (always on a new line)
-                  _buildProfitContainer(product, isMobile,
-                    fontSize: fontSizeProfit,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      );
-    },
-  );
-}
+  // Alternative: Using LayoutBuilder for even more precise responsive control
+  Widget _buildUltraResponsiveProductList(List<Product> products) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final isMobile = width < 600;
 
-// Enhanced info chip with responsive design
-Widget _buildInfoChip(String label, String value, Color color, bool isMobile, {double fontSize = 11, double paddingH = 10, double paddingV = 6}) {
-  return Container(
-    padding: EdgeInsets.symmetric(
-      horizontal: paddingH,
-      vertical: paddingV,
-    ),
-    decoration: BoxDecoration(
-      color: color.withOpacity(0.1),
-      borderRadius: BorderRadius.circular(8),
-      border: Border.all(color: color.withOpacity(0.3)),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: fontSize - 1,
-            color: color.withOpacity(0.8),
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        SizedBox(height: 2),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: fontSize,
-            color: color,
-            fontWeight: FontWeight.bold,
-          ),
-          overflow: TextOverflow.ellipsis,
-        ),
-      ],
-    ),
-  );
-}
-
-// Enhanced profit container
-Widget _buildProfitContainer(Product product, bool isMobile, {double fontSize = 11}) {
-  return Container(
-    padding: EdgeInsets.symmetric(
-      horizontal: isMobile ? 12 : 14,
-      vertical: isMobile ? 8 : 10,
-    ),
-    decoration: BoxDecoration(
-      color: product.profit >= 0 
-          ? Colors.green.withOpacity(0.1) 
-          : Colors.red.withOpacity(0.1),
-      borderRadius: BorderRadius.circular(8),
-      border: Border.all(
-        color: product.profit >= 0 
-            ? Colors.green.withOpacity(0.3) 
-            : Colors.red.withOpacity(0.3),
-      ),
-    ),
-    child: Row(
-      children: [
-        Icon(
-          product.profit >= 0 ? Icons.trending_up : Icons.trending_down,
-          color: product.profit >= 0 ? Colors.green : Colors.red,
-          size: fontSize + 3,
-        ),
-        SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            'Profit: ${product.formattedProfit} (${product.formattedProfitPercentage})',
-            style: TextStyle(
-              color: product.profit >= 0 ? Colors.green : Colors.red,
-              fontWeight: FontWeight.w600,
-              fontSize: fontSize,
-            ),
-            overflow: TextOverflow.ellipsis,
-            maxLines: 1,
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
-// Alternative: Using LayoutBuilder for even more precise responsive control
-Widget _buildUltraResponsiveProductList(List<Product> products) {
-  return LayoutBuilder(
-    builder: (context, constraints) {
-      final width = constraints.maxWidth;
-      final isMobile = width < 600;
-      
-      if (isMobile) {
-        return ListView.builder(
-          padding: EdgeInsets.all(8),
-          itemCount: products.length,
-          itemBuilder: (context, index) => 
-              _buildProductCard(products[index], true),
-        );
-      } else {
-        // Calculate optimal grid parameters based on available width
-        int crossAxisCount;
-        double childAspectRatio;
-        
-        if (width > 1600) {
-          crossAxisCount = 5;
-          childAspectRatio = 2.4;
-        } else if (width > 1200) {
-          crossAxisCount = 4;
-          childAspectRatio = 2.2;
-        } else if (width > 900) {
-          crossAxisCount = 3;
-          childAspectRatio = 1.8;
-        } else if (width > 600) {
-          crossAxisCount = 2;
-          childAspectRatio = 1.6;
+        if (isMobile) {
+          return ListView.builder(
+            padding: EdgeInsets.all(8),
+            itemCount: products.length,
+            itemBuilder:
+                (context, index) => _buildProductCard(products[index], true),
+          );
         } else {
-          crossAxisCount = 1;
-          childAspectRatio = 1.4;
-        }
-        
-        return GridView.builder(
-          padding: EdgeInsets.all(16),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: crossAxisCount,
-            childAspectRatio: childAspectRatio,
-            crossAxisSpacing: 20,
-            mainAxisSpacing: 20,
-          ),
-          itemCount: products.length,
-          itemBuilder: (context, index) => 
-              _buildProductCard(products[index], false),
-        );
-      }
-    },
-  );
-}
+          // Calculate optimal grid parameters based on available width
+          int crossAxisCount;
+          double childAspectRatio;
 
- 
+          if (width > 1600) {
+            crossAxisCount = 5;
+            childAspectRatio = 2.4;
+          } else if (width > 1200) {
+            crossAxisCount = 4;
+            childAspectRatio = 2.2;
+          } else if (width > 900) {
+            crossAxisCount = 3;
+            childAspectRatio = 1.8;
+          } else if (width > 600) {
+            crossAxisCount = 2;
+            childAspectRatio = 1.6;
+          } else {
+            crossAxisCount = 1;
+            childAspectRatio = 1.4;
+          }
+
+          return GridView.builder(
+            padding: EdgeInsets.all(16),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: crossAxisCount,
+              childAspectRatio: childAspectRatio,
+              crossAxisSpacing: 20,
+              mainAxisSpacing: 20,
+            ),
+            itemCount: products.length,
+            itemBuilder:
+                (context, index) => _buildProductCard(products[index], false),
+          );
+        }
+      },
+    );
+  }
 
   Widget _buildSearchAndSortBar() {
     return Container(
@@ -531,7 +570,10 @@ Widget _buildUltraResponsiveProductList(List<Product> products) {
                   DropdownMenuItem(value: 'stock', child: Text('Stock')),
                   DropdownMenuItem(value: 'profit', child: Text('Profit')),
                   DropdownMenuItem(value: 'buyPrice', child: Text('Buy Price')),
-                  DropdownMenuItem(value: 'sellPrice', child: Text('Sell Price')),
+                  DropdownMenuItem(
+                    value: 'sellPrice',
+                    child: Text('Sell Price'),
+                  ),
                 ],
                 underline: Container(),
               ),
@@ -555,8 +597,14 @@ Widget _buildUltraResponsiveProductList(List<Product> products) {
   }
 
   List<Product> _getFilteredAndSortedProducts(List<Product> products) {
-    var filtered = products.where((product) =>
-        product.name.toLowerCase().contains(_searchQuery.toLowerCase())).toList();
+    var filtered =
+        products
+            .where(
+              (product) => product.name.toLowerCase().contains(
+                _searchQuery.toLowerCase(),
+              ),
+            )
+            .toList();
 
     filtered.sort((a, b) {
       int comparison = 0;
@@ -586,69 +634,68 @@ Widget _buildUltraResponsiveProductList(List<Product> products) {
   Widget _buildResponsiveStats(List<Widget> cards, bool isMobile) {
     if (isMobile) {
       return Column(
-        children: cards
-            .expand((card) => [card, SizedBox(height: 16)])
-            .toList()
-          ..removeLast(),
+        children:
+            cards.expand((card) => [card, SizedBox(height: 16)]).toList()
+              ..removeLast(),
       );
     } else {
       return Wrap(
         spacing: 20,
         runSpacing: 20,
-        children: cards
-            .map((card) => SizedBox(
-                  width: 260,
-                  child: card,
-                ))
-            .toList(),
+        children:
+            cards.map((card) => SizedBox(width: 260, child: card)).toList(),
       );
     }
   }
 
-Widget _buildResponsiveProductList(List<Product> products, bool isMobile) {
-  if (isMobile) {
-    return ListView.builder(
-      padding: EdgeInsets.all(8),
-      itemCount: products.length,
-      itemBuilder: (context, index) => _buildProductCard(products[index], isMobile),
-    );
-  } else {
-    return GridView.builder(
-      padding: EdgeInsets.all(16),
-      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 420, // Each card will be at most 420px wide
-        mainAxisSpacing: 20,
-        crossAxisSpacing: 20,
-        childAspectRatio: 1.15, // Slightly taller than wide for good design
-      ),
-      itemCount: products.length,
-      itemBuilder: (context, index) => _buildProductCard(products[index], false),
-    );
+  Widget _buildResponsiveProductList(List<Product> products, bool isMobile) {
+    if (isMobile) {
+      return ListView.builder(
+        padding: EdgeInsets.all(8),
+        itemCount: products.length,
+        itemBuilder:
+            (context, index) => _buildProductCard(products[index], isMobile),
+      );
+    } else {
+      return GridView.builder(
+        padding: EdgeInsets.all(16),
+        gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+          maxCrossAxisExtent: 420, // Each card will be at most 420px wide
+          mainAxisSpacing: 20,
+          crossAxisSpacing: 20,
+          childAspectRatio: 1.15, // Slightly taller than wide for good design
+        ),
+        itemCount: products.length,
+        itemBuilder:
+            (context, index) => _buildProductCard(products[index], false),
+      );
+    }
   }
-}
 
-// Dynamic cross axis count based on screen width
-int _getOptimalCrossAxisCount(BuildContext context) {
-  final screenWidth = MediaQuery.of(context).size.width;
-  if (screenWidth > 1400) return 4;  // Extra large screens
-  if (screenWidth > 1000) return 3;  // Large screens
-  if (screenWidth > 700) return 2;   // Medium screens
-  return 1; // Small desktop screens
-}
-double _getOptimalAspectRatio(BuildContext context) {
-  final screenWidth = MediaQuery.of(context).size.width;
-  if (screenWidth > 1400) return 2.2;  // Extra large screens - more horizontal
-  if (screenWidth > 1000) return 1.8;  // Large screens
-  if (screenWidth > 700) return 1.6;   // Medium screens
-  return 1.4; // Small desktop screens - more vertical
-}
+  // Dynamic cross axis count based on screen width
+  int _getOptimalCrossAxisCount(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    if (screenWidth > 1400) return 4; // Extra large screens
+    if (screenWidth > 1000) return 3; // Large screens
+    if (screenWidth > 700) return 2; // Medium screens
+    return 1; // Small desktop screens
+  }
+
+  double _getOptimalAspectRatio(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    if (screenWidth > 1400) return 2.2; // Extra large screens - more horizontal
+    if (screenWidth > 1000) return 1.8; // Large screens
+    if (screenWidth > 700) return 1.6; // Medium screens
+    return 1.4; // Small desktop screens - more vertical
+  }
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isMobile = constraints.maxWidth < 600;
-        final isTablet = constraints.maxWidth >= 600 && constraints.maxWidth < 1200;
+        final isTablet =
+            constraints.maxWidth >= 600 && constraints.maxWidth < 1200;
         return Scaffold(
           body: Consumer<ProductViewModel>(
             builder: (context, productVM, child) {
@@ -695,38 +742,119 @@ double _getOptimalAspectRatio(BuildContext context) {
                 );
               }
 
-              final filteredProducts = _getFilteredAndSortedProducts(productVM.products);
-              final totalProducts = filteredProducts.length;
-              final totalStockValue = filteredProducts.fold<double>(0, (sum, product) => sum + (product.stock * product.sellPrice));
-              final lowStockProducts = filteredProducts.where((product) => product.stock <= 5).length;
+              final filteredProducts = _getFilteredAndSortedProducts(
+                productVM.products,
+              );
+              // --- Add this block to filter by toggle ---
+              final displayedProducts = _productFilter == 'low'
+                  ? filteredProducts.where((p) => p.stock <= 5).toList()
+                  : filteredProducts;
+              // --- End block ---
+
+              final totalProducts = displayedProducts.length;
+              final totalStockValue = displayedProducts.fold<double>(
+                0,
+                (sum, product) => sum + (product.stock * product.sellPrice),
+              );
+              final totalBuyValue = displayedProducts.fold<double>(
+                0,
+                (sum, product) => sum + (product.stock * product.buyPrice),
+              );
+              final lowStockProducts =
+                  displayedProducts
+                      .where((product) => product.stock <= 5)
+                      .length;
+
+              final lowStockList =
+                  displayedProducts.where((p) => p.stock <= 5).toList();
+              final normalStockList =
+                  displayedProducts.where((p) => p.stock > 5).toList();
 
               final statsCards = [
-                _buildStatsCard('Total Products', '$totalProducts', Icons.inventory_2, Colors.blue),
-                _buildStatsCard('Total Value', '${totalStockValue.toStringAsFixed(2)} DZD', Icons.attach_money, Colors.green),
-                _buildStatsCard('Low Stock', '$lowStockProducts', Icons.warning, Colors.orange),
+                _buildStatsCard(
+                  'Total Products',
+                  '$totalProducts',
+                  Icons.inventory_2,
+                  Colors.blue,
+                ),
+                _buildStatsCard(
+                  'Total Value',
+                  '${totalStockValue.toStringAsFixed(2)} DZD',
+                  Icons.attach_money,
+                  Colors.green,
+                ),
+                _buildStatsCard(
+                  'Total Value (Buy Price)',
+                  '${totalBuyValue.toStringAsFixed(2)} DZD',
+                  Icons.money_off,
+                  Colors.purple,
+                ),
+                _buildStatsCard(
+                  'Low Stock',
+                  '$lowStockProducts',
+                  Icons.warning,
+                  Colors.orange,
+                ),
               ];
 
               return CustomScrollView(
                 slivers: [
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: EdgeInsets.all(isMobile ? 12 : isTablet ? 24 : 40),
+                      padding: EdgeInsets.all(
+                        isMobile
+                            ? 12
+                            : isTablet
+                            ? 24
+                            : 40,
+                      ),
                       child: Column(
                         children: [
                           // Header
                           Row(
                             children: [
                               Container(
-                                padding: EdgeInsets.all(isMobile ? 10 : isTablet ? 14 : 20),
+                                padding: EdgeInsets.all(
+                                  isMobile
+                                      ? 10
+                                      : isTablet
+                                      ? 14
+                                      : 20,
+                                ),
                                 decoration: BoxDecoration(
                                   gradient: LinearGradient(
-                                    colors: [Colors.blue.withOpacity(0.2), Colors.blue.withOpacity(0.1)],
+                                    colors: [
+                                      Colors.blue.withOpacity(0.2),
+                                      Colors.blue.withOpacity(0.1),
+                                    ],
                                   ),
-                                  borderRadius: BorderRadius.circular(isMobile ? 10 : isTablet ? 14 : 20),
+                                  borderRadius: BorderRadius.circular(
+                                    isMobile
+                                        ? 10
+                                        : isTablet
+                                        ? 14
+                                        : 20,
+                                  ),
                                 ),
-                                child: Icon(Icons.inventory, size: isMobile ? 22 : isTablet ? 28 : 36, color: Colors.blue),
+                                child: Icon(
+                                  Icons.inventory,
+                                  size:
+                                      isMobile
+                                          ? 22
+                                          : isTablet
+                                          ? 28
+                                          : 36,
+                                  color: Colors.blue,
+                                ),
                               ),
-                              SizedBox(width: isMobile ? 10 : isTablet ? 14 : 20),
+                              SizedBox(
+                                width:
+                                    isMobile
+                                        ? 10
+                                        : isTablet
+                                        ? 14
+                                        : 20,
+                              ),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -734,7 +862,12 @@ double _getOptimalAspectRatio(BuildContext context) {
                                     Text(
                                       'Products',
                                       style: TextStyle(
-                                        fontSize: isMobile ? 22 : isTablet ? 28 : 36,
+                                        fontSize:
+                                            isMobile
+                                                ? 22
+                                                : isTablet
+                                                ? 28
+                                                : 36,
                                         fontWeight: FontWeight.bold,
                                         color: Colors.grey[800],
                                       ),
@@ -742,7 +875,12 @@ double _getOptimalAspectRatio(BuildContext context) {
                                     Text(
                                       'Manage your inventory products',
                                       style: TextStyle(
-                                        fontSize: isMobile ? 13 : isTablet ? 15 : 18,
+                                        fontSize:
+                                            isMobile
+                                                ? 13
+                                                : isTablet
+                                                ? 15
+                                                : 18,
                                         color: Colors.grey[600],
                                       ),
                                     ),
@@ -756,7 +894,8 @@ double _getOptimalAspectRatio(BuildContext context) {
                                     onPressed: () {
                                       Navigator.of(context).push(
                                         MaterialPageRoute(
-                                          builder: (_) => const ProductFormScreen(),
+                                          builder:
+                                              (_) => const ProductFormScreen(),
                                         ),
                                       );
                                     },
@@ -765,27 +904,75 @@ double _getOptimalAspectRatio(BuildContext context) {
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.blue,
                                       foregroundColor: Colors.white,
-                                      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                                      textStyle: TextStyle(fontSize: isTablet ? 16 : 18, fontWeight: FontWeight.bold),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: 20,
+                                        vertical: 14,
+                                      ),
+                                      textStyle: TextStyle(
+                                        fontSize: isTablet ? 16 : 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
                                     ),
                                   ),
                                 ),
                             ],
                           ),
-                          SizedBox(height: isMobile ? 18 : isTablet ? 28 : 40),
+                          SizedBox(
+                            height:
+                                isMobile
+                                    ? 18
+                                    : isTablet
+                                    ? 28
+                                    : 40,
+                          ),
                           // Statistics Cards
                           _buildResponsiveStats(statsCards, isMobile),
-                          SizedBox(height: isMobile ? 18 : isTablet ? 28 : 40),
+                          SizedBox(
+                            height:
+                                isMobile
+                                    ? 18
+                                    : isTablet
+                                    ? 28
+                                    : 40,
+                          ),
                           // Search and Filter Bar
                           _buildSearchAndSortBar(),
+                          SizedBox(height: 12),
+                          // --- Add toggle chips here ---
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              ChoiceChip(
+                                label: Text('All Products'),
+                                selected: _productFilter == 'all',
+                                onSelected: (selected) {
+                                  setState(() {
+                                    _productFilter = 'all';
+                                  });
+                                },
+                              ),
+                              SizedBox(width: 12),
+                              ChoiceChip(
+                                label: Text('Low Stock'),
+                                selected: _productFilter == 'low',
+                                onSelected: (selected) {
+                                  setState(() {
+                                    _productFilter = 'low';
+                                  });
+                                },
+                              ),
+                            ],
+                          ),
                           SizedBox(height: 20),
+                          // --- End toggle chips ---
                         ],
                       ),
                     ),
                   ),
-
-                  if (filteredProducts.isEmpty)
+                  if (displayedProducts.isEmpty)
                     SliverFillRemaining(
                       child: Center(
                         child: Column(
@@ -795,7 +982,9 @@ double _getOptimalAspectRatio(BuildContext context) {
                               padding: EdgeInsets.all(isMobile ? 32 : 48),
                               decoration: BoxDecoration(
                                 color: Colors.grey[100],
-                                borderRadius: BorderRadius.circular(isMobile ? 20 : 24),
+                                borderRadius: BorderRadius.circular(
+                                  isMobile ? 20 : 24,
+                                ),
                               ),
                               child: Icon(
                                 Icons.inventory_2_outlined,
@@ -805,7 +994,9 @@ double _getOptimalAspectRatio(BuildContext context) {
                             ),
                             SizedBox(height: isMobile ? 24 : 32),
                             Text(
-                              _searchQuery.isEmpty ? 'No products yet' : 'No products found',
+                              _searchQuery.isEmpty
+                                  ? 'No products yet'
+                                  : 'No products found',
                               style: TextStyle(
                                 fontSize: isMobile ? 20 : 28,
                                 color: Colors.grey[600],
@@ -829,11 +1020,19 @@ double _getOptimalAspectRatio(BuildContext context) {
                     )
                   else
                     SliverPadding(
-                      padding: EdgeInsets.symmetric(horizontal: isMobile ? 8 : 24, vertical: 8),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isMobile ? 8 : 24,
+                        vertical: 8,
+                      ),
                       sliver: SliverToBoxAdapter(
                         child: SizedBox(
-                          height: MediaQuery.of(context).size.height - (isMobile ? 320 : 400),
-                          child: _buildResponsiveProductList(filteredProducts, isMobile),
+                          height:
+                              MediaQuery.of(context).size.height -
+                              (isMobile ? 320 : 400),
+                          child: _buildResponsiveProductList(
+                            displayedProducts, // <-- Use displayedProducts here
+                            isMobile,
+                          ),
                         ),
                       ),
                     ),
@@ -841,20 +1040,21 @@ double _getOptimalAspectRatio(BuildContext context) {
               );
             },
           ),
-          floatingActionButton: isMobile
-              ? FloatingActionButton(
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const ProductFormScreen(),
-                      ),
-                    );
-                  },
-                  child: Icon(Icons.add),
-                  backgroundColor: Colors.blue,
-                  foregroundColor: Colors.white,
-                )
-              : null,
+          floatingActionButton:
+              isMobile
+                  ? FloatingActionButton(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const ProductFormScreen(),
+                        ),
+                      );
+                    },
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                    child: Icon(Icons.add),
+                  )
+                  : null,
         );
       },
     );
