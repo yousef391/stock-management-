@@ -41,12 +41,15 @@ class StockRepository {
         .select();
   }
 
-  Future<StockPerforma> createPerformaRecord(Map<String, dynamic> performaData) async {
-    final performaResponse = await _client
-        .from('stock_performas')
-        .insert(performaData)
-        .select()
-        .single();
+  Future<StockPerforma> createPerformaRecord(
+    Map<String, dynamic> performaData,
+  ) async {
+    final performaResponse =
+        await _client
+            .from('stock_performas')
+            .insert(performaData)
+            .select()
+            .single();
     return StockPerforma.fromJson(performaResponse);
   }
 
@@ -84,6 +87,36 @@ class StockRepository {
       pdfBytes: pdfBytes,
       performaNumber: fileName,
     );
+  }
+
+  Future<void> deletePerformaAndResetProducts(StockPerforma performa, String userId) async {
+    // For each item in the performa, reset the product stock
+    for (final item in performa.items) {
+      // Fetch the product
+      final response = await _client
+          .from('products')
+          .select()
+          .eq('id', item.productId)
+          .eq('user_id', userId)
+          .single();
+      if (response == null) continue;
+      final product = Product.fromMap(response);
+      // Reset stock: if performa.type == 'in', subtract; if 'out', add
+      int resetStock = performa.type == 'in'
+          ? product.stock - item.quantity
+          : product.stock + item.quantity;
+      if (resetStock < 0) resetStock = 0;
+      await updateProductStock(productId: product.id, newStock: resetStock);
+    }
+    // Delete the performa
+    print('Deleting performa: id=${performa.id}, userId=$userId');
+    final deleteResponse = await _client
+        .from('stock_performas')
+        .delete()
+        .eq('id', performa.id)
+        .eq('user_id', userId)
+        .select();
+    print('Delete response: $deleteResponse');
   }
 
   // Add more methods as needed for stock in/out, multi-product performa, etc.

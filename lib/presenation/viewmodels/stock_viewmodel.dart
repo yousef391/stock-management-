@@ -45,12 +45,34 @@ class StockViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> stockIn({required Product product, required int quantity, required String userId, required companyInfo}) async {
-    await _updateStock(product: product, quantity: quantity, type: 'in', userId: userId, companyInfo: companyInfo);
+  Future<void> stockIn({
+    required Product product,
+    required int quantity,
+    required String userId,
+    required companyInfo,
+  }) async {
+    await _updateStock(
+      product: product,
+      quantity: quantity,
+      type: 'in',
+      userId: userId,
+      companyInfo: companyInfo,
+    );
   }
 
-  Future<void> stockOut({required Product product, required int quantity, required String userId, required companyInfo}) async {
-    await _updateStock(product: product, quantity: quantity, type: 'out', userId: userId, companyInfo: companyInfo);
+  Future<void> stockOut({
+    required Product product,
+    required int quantity,
+    required String userId,
+    required companyInfo,
+  }) async {
+    await _updateStock(
+      product: product,
+      quantity: quantity,
+      type: 'out',
+      userId: userId,
+      companyInfo: companyInfo,
+    );
   }
 
   Future<void> _updateStock({
@@ -64,16 +86,18 @@ class StockViewModel extends ChangeNotifier {
     _error = null;
     notifyListeners();
     try {
-      int newStock = type == 'in'
-          ? product.stock + quantity
-          : product.stock - quantity;
+      int newStock =
+          type == 'in' ? product.stock + quantity : product.stock - quantity;
       if (newStock < 0) {
         _error = 'Stock cannot be negative';
         _isLoading = false;
         notifyListeners();
         return;
       }
-      await _repository.updateProductStock(productId: product.id, newStock: newStock);
+      await _repository.updateProductStock(
+        productId: product.id,
+        newStock: newStock,
+      );
       final performaData = {
         'user_id': userId,
         'product_id': product.id,
@@ -84,7 +108,12 @@ class StockViewModel extends ChangeNotifier {
         'type': type,
       };
       final performa = await _repository.createPerformaRecord(performaData);
-      await _generateAndUploadPerforma(performa, product, type, companyInfo: companyInfo);
+      await _generateAndUploadPerforma(
+        performa,
+        product,
+        type,
+        companyInfo: companyInfo,
+      );
       await fetchProducts(userId);
       await fetchPerformas(userId);
     } catch (e) {
@@ -97,11 +126,14 @@ class StockViewModel extends ChangeNotifier {
   Future<void> _generateAndUploadPerforma(
     StockPerforma performa,
     dynamic items, // Can be Product or List<StockItem>
-    String operationType,
-    {required companyInfo, double deliveryCharge = 0}
-  ) async {
+    String operationType, {
+    required companyInfo,
+    double deliveryCharge = 0,
+  }) async {
     try {
-      print('_generateAndUploadPerforma: Generating PDF for performa: [performa.id]');
+      print(
+        '_generateAndUploadPerforma: Generating PDF for performa: [performa.id]',
+      );
       final pdfBytes = await _repository.generateStockPerformaPdf(
         performa: performa,
         items: items is List ? items : [items],
@@ -110,13 +142,25 @@ class StockViewModel extends ChangeNotifier {
         companyInfo: companyInfo,
         deliveryCharge: deliveryCharge,
       );
-      print('_generateAndUploadPerforma: Uploading PDF for performa: [performa.id]');
-      final pdfUrl = await _repository.uploadFacturePdf(pdfBytes, performa.performaNumber);
+      print(
+        '_generateAndUploadPerforma: Uploading PDF for performa: [performa.id]',
+      );
+      final pdfUrl = await _repository.uploadFacturePdf(
+        pdfBytes,
+        performa.performaNumber,
+      );
       if (pdfUrl != null) {
-        print('_generateAndUploadPerforma: Updating performa pdfUrl for performa: [performa.id]');
-        await _repository.updatePerformaPdfUrl(performaId: performa.id, pdfUrl: pdfUrl);
+        print(
+          '_generateAndUploadPerforma: Updating performa pdfUrl for performa: [performa.id]',
+        );
+        await _repository.updatePerformaPdfUrl(
+          performaId: performa.id,
+          pdfUrl: pdfUrl,
+        );
       } else {
-        print('_generateAndUploadPerforma: pdfUrl is null for performa: [performa.id]');
+        print(
+          '_generateAndUploadPerforma: pdfUrl is null for performa: [performa.id]',
+        );
       }
     } catch (e) {
       print('_generateAndUploadPerforma: Exception: $e');
@@ -142,30 +186,40 @@ class StockViewModel extends ChangeNotifier {
       // Validate all stock operations
       for (final item in items) {
         if (operationType == 'out' && item.quantity > item.product.stock) {
-          _error = 'Cannot remove 27${item.quantity}27 units from 27${item.product.name}27. Available stock: 27${item.product.stock}27';
+          _error =
+              'Cannot remove 27${item.quantity}27 units from 27${item.product.name}27. Available stock: 27${item.product.stock}27';
           return;
         }
       }
       // Update all product stocks
       for (final item in items) {
-        int newStock = operationType == 'in'
-            ? item.product.stock + item.quantity
-            : item.product.stock - item.quantity;
+        int newStock =
+            operationType == 'in'
+                ? item.product.stock + item.quantity
+                : item.product.stock - item.quantity;
         if (newStock < 0) {
           _error = 'Stock cannot be negative for ${item.product.name}';
           return;
         }
-        await _repository.updateProductStock(productId: item.product.id, newStock: newStock);
+        await _repository.updateProductStock(
+          productId: item.product.id,
+          newStock: newStock,
+        );
       }
       // Create performa items list
-      final performaItems = items.map((item) => {
-        'product_id': item.product.id,
-        'product_name': item.product.name,
-        'buy_price': item.product.buyPrice,
-        'sell_price': item.product.sellPrice,
-        'quantity': item.quantity,
-        'current_stock': item.product.stock,
-      }).toList();
+      final performaItems =
+          items
+              .map(
+                (item) => {
+                  'product_id': item.product.id,
+                  'product_name': item.product.name,
+                  'buy_price': item.product.buyPrice,
+                  'sell_price': item.product.sellPrice,
+                  'quantity': item.quantity,
+                  'current_stock': item.product.stock,
+                },
+              )
+              .toList();
       final performaNumber = await _generateUniquePerformaNumber(userId);
       final performaData = {
         'user_id': userId,
@@ -186,8 +240,12 @@ class StockViewModel extends ChangeNotifier {
           break;
         } catch (e) {
           retryCount++;
-          if (e.toString().contains('duplicate key value violates unique constraint') && retryCount < maxRetries) {
-            performaData['performa_number'] = await _generateUniquePerformaNumber(userId);
+          if (e.toString().contains(
+                'duplicate key value violates unique constraint',
+              ) &&
+              retryCount < maxRetries) {
+            performaData['performa_number'] =
+                await _generateUniquePerformaNumber(userId);
             await Future.delayed(Duration(milliseconds: 500 * retryCount));
             continue;
           } else {
@@ -199,7 +257,13 @@ class StockViewModel extends ChangeNotifier {
         throw Exception('Failed to create performa after $maxRetries attempts');
       }
       try {
-        await _generateAndUploadPerforma(performa, items, operationType, companyInfo: companyInfo, deliveryCharge: deliveryCharge);
+        await _generateAndUploadPerforma(
+          performa,
+          items,
+          operationType,
+          companyInfo: companyInfo,
+          deliveryCharge: deliveryCharge,
+        );
       } catch (e) {
         // Don't fail the operation if PDF generation fails
       }
@@ -214,23 +278,35 @@ class StockViewModel extends ChangeNotifier {
 
   Future<String> _generateUniquePerformaNumber(String userId) async {
     final now = DateTime.now();
-    final dateStr = '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}';
-    final timeStr = '${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}${now.second.toString().padLeft(2, '0')}';
-    final millisStr = now.millisecondsSinceEpoch.toString().substring(8); // Last 4 digits
+    final dateStr =
+        '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}';
+    final timeStr =
+        '${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}${now.second.toString().padLeft(2, '0')}';
+    final millisStr = now.millisecondsSinceEpoch.toString().substring(
+      8,
+    ); // Last 4 digits
     return 'PERF-$dateStr-$timeStr-$millisStr';
   }
 
-  Future<void> testSimpleStockOut({required Product product, required int quantity, required String userId}) async {
+  Future<void> testSimpleStockOut({
+    required Product product,
+    required int quantity,
+    required String userId,
+  }) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
     try {
       if (quantity > product.stock) {
-        _error = 'Cannot remove $quantity units. Available stock: ${product.stock}';
+        _error =
+            'Cannot remove $quantity units. Available stock: ${product.stock}';
         return;
       }
       int newStock = product.stock - quantity;
-      await _repository.updateProductStock(productId: product.id, newStock: newStock);
+      await _repository.updateProductStock(
+        productId: product.id,
+        newStock: newStock,
+      );
       await fetchProducts(userId);
     } catch (e) {
       _error = e.toString();
@@ -250,12 +326,13 @@ class StockViewModel extends ChangeNotifier {
   }) async {
     print('generateAndUploadPerformaPdf called for performa: ${performa.id}');
     // Fix: Map PerformaItem to expected structure for PDF generation
-    final mappedItems = items.map((item) {
-      if (item is PerformaItem) {
-        return _PerformaItemAdapter(item);
-      }
-      return item;
-    }).toList();
+    final mappedItems =
+        items.map((item) {
+          if (item is PerformaItem) {
+            return _PerformaItemAdapter(item);
+          }
+          return item;
+        }).toList();
     await _generateAndUploadPerforma(
       performa,
       mappedItems,
@@ -264,6 +341,21 @@ class StockViewModel extends ChangeNotifier {
       deliveryCharge: deliveryCharge,
     );
     print('generateAndUploadPerformaPdf finished for performa: ${performa.id}');
+  }
+
+  Future<void> deletePerformaAndResetProducts(StockPerforma performa, String userId) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+    try {
+      await _repository.deletePerformaAndResetProducts(performa, userId);
+      await fetchProducts(userId);
+      await fetchPerformas(userId);
+    } catch (e) {
+      _error = e.toString();
+    }
+    _isLoading = false;
+    notifyListeners();
   }
 }
 
@@ -283,4 +375,4 @@ class _ProductAdapter {
   String get name => item.productName;
   double get buyPrice => item.buyPrice;
   double get sellPrice => item.sellPrice;
-} 
+}

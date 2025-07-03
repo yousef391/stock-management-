@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+
 
 class CompanyInfo {
   final String? id;

@@ -1045,6 +1045,56 @@ class _StockScreenState extends State<StockScreen> with TickerProviderStateMixin
                             ),
                           ),
                         ],
+                        SizedBox(width: 12),
+                        Expanded(
+                          child: Consumer<StockViewModel>(
+                            builder: (context, stockVM, _) {
+                              return ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.red,
+                                  foregroundColor: Colors.white,
+                                ),
+                                icon: Icon(Icons.delete, size: isMobile ? 12 : 16),
+                                label: Text('Delete', style: TextStyle(fontSize: isMobile ? 12 : 16)),
+                                onPressed: stockVM.isLoading
+                                    ? null
+                                    : () async {
+                                        final confirm = await showDialog<bool>(
+                                          context: context,
+                                          builder: (context) => AlertDialog(
+                                            title: Text('Delete Performa'),
+                                            content: Text('Are you sure you want to delete this performa? This will reset all related product quantities.'),
+                                            actions: [
+                                              TextButton(
+                                                onPressed: () => Navigator.of(context).pop(false),
+                                                child: Text('Cancel'),
+                                              ),
+                                              TextButton(
+                                                onPressed: () => Navigator.of(context).pop(true),
+                                                child: Text('Delete', style: TextStyle(color: Colors.red)),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                        if (confirm == true) {
+                                          final userId = performa.userId;
+                                          await stockVM.deletePerformaAndResetProducts(performa, userId);
+                                          Navigator.of(context).pop();
+                                          if (stockVM.error == null) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(content: Text('Performa deleted and products reset.')),
+                                            );
+                                          } else {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(content: Text('Error: \\${stockVM.error}')),
+                                            );
+                                          }
+                                        }
+                                      },
+                              );
+                            },
+                          ),
+                        ),
                       ],
                     ),
                   ],

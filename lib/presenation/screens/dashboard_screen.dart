@@ -5,6 +5,8 @@ import '../viewmodels/stock_viewmodel.dart';
 import '../../data/models/product.dart';
 import '../../data/models/stock_performa.dart';
 import '../viewmodels/auth_viewmodel.dart';
+import '../widgets/dashboard_period_filter.dart';
+import '../widgets/dashboard_stats_card.dart';
 
 enum PeriodFilter {
   lastDay,
@@ -51,350 +53,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  String _getPeriodDisplayName() {
-    switch (_selectedPeriod) {
-      case PeriodFilter.lastDay:
-        return 'Last 24 Hours';
-      case PeriodFilter.last7Days:
-        return 'Last 7 Days';
-      case PeriodFilter.lastMonth:
-        return 'Last Month';
-      case PeriodFilter.allTime:
-        return 'All Time';
-    }
-  }
 
   List<StockPerforma> _getFilteredPerformas(List<StockPerforma> performas) {
     final startDate = _getStartDate();
     return performas.where((performa) => performa.createdAt.isAfter(startDate)).toList();
   }
 
-  List<Product> _getFilteredProducts(List<Product> products) {
-    // For products, we'll show current state regardless of period
-    // But we can filter based on when they were last updated if needed
-    return products;
-  }
 
-  Widget _buildPeriodFilterChips() {
-    return Container(
-      padding: EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Time Period',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey[800],
-            ),
-          ),
-          SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            children: [
-              FilterChip(
-                label: Text('24H'),
-                selected: _selectedPeriod == PeriodFilter.lastDay,
-                onSelected: (selected) {
-                  setState(() {
-                    _selectedPeriod = PeriodFilter.lastDay;
-                  });
-                },
-                selectedColor: Colors.blue.withOpacity(0.2),
-                checkmarkColor: Colors.blue,
-              ),
-              FilterChip(
-                label: Text('7 Days'),
-                selected: _selectedPeriod == PeriodFilter.last7Days,
-                onSelected: (selected) {
-                  setState(() {
-                    _selectedPeriod = PeriodFilter.last7Days;
-                  });
-                },
-                selectedColor: Colors.green.withOpacity(0.2),
-                checkmarkColor: Colors.green,
-              ),
-              FilterChip(
-                label: Text('Month'),
-                selected: _selectedPeriod == PeriodFilter.lastMonth,
-                onSelected: (selected) {
-                  setState(() {
-                    _selectedPeriod = PeriodFilter.lastMonth;
-                  });
-                },
-                selectedColor: Colors.orange.withOpacity(0.2),
-                checkmarkColor: Colors.orange,
-              ),
-              FilterChip(
-                label: Text('All Time'),
-                selected: _selectedPeriod == PeriodFilter.allTime,
-                onSelected: (selected) {
-                  setState(() {
-                    _selectedPeriod = PeriodFilter.allTime;
-                  });
-                },
-                selectedColor: Colors.purple.withOpacity(0.2),
-                checkmarkColor: Colors.purple,
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
 
-  Widget _buildStatsCard(String title, String value, IconData icon, Color color, {String? subtitle}) {
-    return Container(
-      padding: EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icon, color: color, size: 24),
-              ),
-              Spacer(),
-              Icon(Icons.trending_up, color: Colors.green, size: 20),
-            ],
-          ),
-          SizedBox(height: 16),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey[800],
-            ),
-            overflow: TextOverflow.ellipsis,
-            maxLines: 1,
-          ),
-          SizedBox(height: 4),
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[600],
-            ),
-            overflow: TextOverflow.ellipsis,
-            maxLines: 1,
-          ),
-          if (subtitle != null) ...[
-            SizedBox(height: 4),
-            Text(
-              subtitle,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[500],
-              ),
-              overflow: TextOverflow.ellipsis,
-              maxLines: 1,
-            ),
-          ],
-        ],
-      ),
-    );
-  }
 
-  Widget _buildRecentActivityCard(String title, List<Widget> children) {
-    return Container(
-      padding: EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey[800],
-            ),
-            overflow: TextOverflow.ellipsis,
-            maxLines: 1,
-          ),
-          SizedBox(height: 16),
-          ...children,
-        ],
-      ),
-    );
-  }
 
-  Widget _buildActivityItem(String title, String subtitle, IconData icon, Color color) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: 12),
-      child: Row(
-        children: [
-          Container(
-            padding: EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, color: color, size: 16),
-          ),
-          SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey[800],
-                  ),
-                ),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLowStockAlert(Product product) {
-    return Container(
-      padding: EdgeInsets.all(12),
-      margin: EdgeInsets.only(bottom: 8),
-      decoration: BoxDecoration(
-        color: Colors.red.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.red.withOpacity(0.3)),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.warning, color: Colors.red, size: 20),
-          SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  product.name,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey[800],
-                  ),
-                ),
-                Text(
-                  'Low stock: ${product.stock} units',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.red,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTopProductCard(Product product, int rank) {
-    return Container(
-      padding: EdgeInsets.all(12),
-      margin: EdgeInsets.only(bottom: 8),
-      decoration: BoxDecoration(
-        color: Colors.blue.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.blue.withOpacity(0.3)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: Colors.blue,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Center(
-              child: Text(
-                '#$rank',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
-                ),
-              ),
-            ),
-          ),
-          SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  product.name,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey[800],
-                  ),
-                ),
-                Text(
-                  'Stock: ${product.stock} | Profit: ${product.formattedProfit}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildResponsiveStats(List<Widget> cards, bool isMobile) {
     if (isMobile) {
@@ -418,19 +86,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  Widget _buildResponsiveList(List<Widget> items, bool isMobile) {
-    if (isMobile) {
-      return Column(children: items);
-    } else {
-      return GridView.count(
-        crossAxisCount: 2,
-        shrinkWrap: true,
-        childAspectRatio: 3,
-        physics: NeverScrollableScrollPhysics(),
-        children: items,
-      );
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -565,11 +220,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 );
                               });
                               final statsCards = [
-                                _buildStatsCard('Total Operations', '$totalOperations', Icons.assignment, Colors.blue),
-                                _buildStatsCard('Stock In', '$stockInOperations', Icons.arrow_downward, Colors.green),
-                                _buildStatsCard('Stock Out', '$stockOutOperations', Icons.arrow_upward, Colors.red),
-                                _buildStatsCard('Total Revenue', '${totalValue.toStringAsFixed(2)} DZD', Icons.attach_money, Colors.orange),
-                                _buildStatsCard('Total Profit', '${totalProfit.toStringAsFixed(2)} DZD', Icons.trending_up, Colors.purple),
+                                DashboardStatsCard(
+                                  title: 'Total Operations',
+                                  value: '$totalOperations',
+                                  icon: Icons.assignment,
+                                  color: Colors.blue,
+                                ),
+                                DashboardStatsCard(
+                                  title: 'Stock In',
+                                  value: '$stockInOperations',
+                                  icon: Icons.arrow_downward,
+                                  color: Colors.green,
+                                ),
+                                DashboardStatsCard(
+                                  title: 'Stock Out',
+                                  value: '$stockOutOperations',
+                                  icon: Icons.arrow_upward,
+                                  color: Colors.red,
+                                ),
+                                DashboardStatsCard(
+                                  title: 'Total Revenue',
+                                  value: '${totalValue.toStringAsFixed(2)} DZD',
+                                  icon: Icons.attach_money,
+                                  color: Colors.orange,
+                                ),
+                                DashboardStatsCard(
+                                  title: 'Total Profit',
+                                  value: '${totalProfit.toStringAsFixed(2)} DZD',
+                                  icon: Icons.trending_up,
+                                  color: Colors.purple,
+                                ),
                               ];
                               return _buildResponsiveStats(statsCards, isMobile);
                             },
